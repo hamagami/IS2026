@@ -12,7 +12,7 @@ for filepath in glob.glob("**/*.ipynb", recursive=True):
 
   # 日本語やスペースを含むファイル名でもリンクが壊れないようURLエンコード
   encoded_path = urllib.parse.quote(filepath)
-  colab_url = f"https://google.com{REPO}/blob/{BRANCH}/{encoded_path}"
+  colab_url = f"https://colab.research.google.com/github/{REPO}/blob/{BRANCH}/{encoded_path}"
   badge_md = f"[![Open In Colab](https://google.com)]({colab_url})"
 
   # すでにバッジが含まれている場合はスキップ
