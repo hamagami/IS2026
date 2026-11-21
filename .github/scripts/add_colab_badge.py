@@ -1,33 +1,33 @@
-name: Add Colab Badge
+import glob
+import json
+import os
+import urllib.parse
 
-on:
-  push:
-    paths:
-      - '**.ipynb'
+REPO = os.environ["GITHUB_REPOSITORY"]
+BRANCH = os.environ["GITHUB_REF_NAME"]
 
-permissions:
-  contents: write
+for filepath in glob.glob("**/*.ipynb", recursive=True):
+  with open(filepath, "r", encoding="utf-8") as f:
+    nb = json.load(f)
 
-jobs:
-  add-badge:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # 日本語やスペースを含むファイル名でもリンクが壊れないようURLエンコード
+  encoded_path = urllib.parse.quote(filepath)
+  colab_url = f"https://google.com{REPO}/blob/{BRANCH}/{encoded_path}"
+  badge_md = f"[![Open In Colab](https://google.com)]({colab_url})"
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+  # すでにバッジが含まれている場合はスキップ
+  if nb.get("cells") and badge_md in "".join(
+      nb["cells"][0].get("source", [])
+  ):
+    continue
 
-      - name: Add Colab badge to notebooks
-        env:
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-        run: python .github/scripts/add_colab_badge.py
+  new_cell = {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [badge_md],
+  }
+  nb["cells"].insert(0, new_cell)
 
-      - name: Commit and push changes
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@://github.com"
-          git add '*.ipynb'
-          git diff --staged --quiet || (git commit -m "Add Open in Colab badge" && git push)
+  with open(filepath, "w", encoding="utf-8") as f:
+    json.dump(nb, f, indent=1, ensure_ascii=False)
+    f.write("\n")
